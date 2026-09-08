@@ -100,21 +100,20 @@ cd omarchy-aesthetic-themes
 A high-definition walkthrough demonstration (`omarchy_intro_showcase.mp4`) is available in `assets/showcase/`.
 
 ### Gallery Placeholders
-<!-- Future image: assets/showcase/sololeveling_monarch.png -->
-<!-- Future image: assets/showcase/sololeveling_shadow_army.png -->
-<!-- Future image: assets/showcase/sololeveling_smile.png -->
-<!-- Future image: assets/showcase/sukuna_fuga.png -->
-<!-- Future image: assets/showcase/sukuna_malevolent_shrine.png -->
-<!-- Future image: assets/showcase/gojo_infinity.png -->
-<!-- Future image: assets/showcase/yuta_rika_dark_ocean.png -->
-<!-- Future image: assets/showcase/kenjaku_prison_realm.png -->
-<!-- Future image: assets/showcase/reze_bomb_devil.png -->
-<!-- Future image: assets/showcase/chainsaw_rage.png -->
-<!-- Future image: assets/showcase/black_asta.png -->
-<!-- Future image: assets/showcase/gabimaru_hollow_flame.png -->
-<!-- Future image: assets/showcase/ichigo_hollow.png -->
-<!-- Future image: assets/showcase/matrix_digital.png -->
-<!-- Future image: assets/showcase/BMW_M4_night.png -->
+![Solo Leveling — Shadow Monarch](assets/showcase/sololeveling_monarch.png)
+![Solo Leveling — Shadow Army](assets/showcase/sololeveling_shadow_army.png)
+![Solo Leveling — God Statue](assets/showcase/sololeveling_smile.png)
+![Sukuna — Fūga](assets/showcase/sukuna_fuga.png)
+![Sukuna — Malevolent Shrine](assets/showcase/sukuna_malevolent_shrine.png)
+![Gojo — Infinity](assets/showcase/gojo_infinity.png)
+![Yuta × Rika — Dark Ocean](assets/showcase/yuta_rika_dark_ocean.png)
+![Kenjaku — Prison Realm](assets/showcase/kenjaku_prison_realm.png)
+![Reze — Bomb Devil](assets/showcase/reze_bomb_devil.png)
+![Chainsaw Man — Rage](assets/showcase/chainsaw_rage.png)
+![Black Asta — Demon Form](assets/showcase/black_asta.png)
+![Ichigo — Hollow Mask](assets/showcase/ichigo_hollow.png)
+![Matrix — Digital Rain](assets/showcase/matrix_digital.png)
+![BMW M4 — Night Drive](assets/showcase/BMW_M4_night.png)
 
 ---
 
