@@ -1,0 +1,12 @@
+# Runtime state & caches
+*.log
+*.tmp
+*.bak
+*~
+.cache/
+/tmp/mpvpaper-ipc.sock
+*.pid
+.env
+.env.*
+.DS_Store
+Thumbs.db

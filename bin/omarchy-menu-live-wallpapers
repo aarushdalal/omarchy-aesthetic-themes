@@ -1,0 +1,48 @@
+#!/usr/bin/env bash
+# ==============================================================================
+# omarchy-menu-live-wallpapers: Dedicated Floating HUD for Live Video Wallpapers
+# ==============================================================================
+set -euo pipefail
+
+if pgrep -f "omarchy-menu-select.*Live Video" >/dev/null 2>&1; then
+    pkill -f "omarchy-menu-select.*Live Video" 2>/dev/null || true
+    omarchy-shell shell hide omarchy.menu 2>/dev/null || true
+    exit 0
+fi
+
+output_wallpapers() {
+  cat << 'WALLPAPERS'
+󰐊	Toggle Live Video Wallpaper (Play/Pause)	${XDG_BIN_HOME:-$HOME/.local/bin}/omarchy-live-wallpaper toggle
+󰓛	Stop Live Video Wallpaper Engine	${XDG_BIN_HOME:-$HOME/.local/bin}/omarchy-live-wallpaper stop
+󰊠	Solo Leveling: Shadow Monarch (4K 60FPS)	${XDG_BIN_HOME:-$HOME/.local/bin}/omarchy-live-wallpaper start sung-jin-woo-beru-solo-leveling-moewalls-com.mp4
+󰘔	Solo Leveling: Shadow Army Arise (4K 60FPS)	${XDG_BIN_HOME:-$HOME/.local/bin}/omarchy-live-wallpaper start mylivewallpapers-com-Shadow-Army-Solo-Leveling-4K.mp4
+󰚌	Solo Leveling: God Statue Smile (4K)	${XDG_BIN_HOME:-$HOME/.local/bin}/omarchy-live-wallpaper start mylivewallpapers-com-Solo-Leveling-Smile-4K.mp4
+󰐌	Jujutsu Kaisen: Sukuna Divine Flame Fūga (4K)	${XDG_BIN_HOME:-$HOME/.local/bin}/omarchy-live-wallpaper start ryomen-sukuna-fuga-jujutsu-kaisen-wallpaperwaifu-com.mp4
+󰛨	Jujutsu Kaisen: Sukuna Malevolent Shrine (4K)	${XDG_BIN_HOME:-$HOME/.local/bin}/omarchy-live-wallpaper start ryomen-sukuna-jujutsu-kaisen-moewalls-com.mp4
+󰠵	Jujutsu Kaisen: Gojo Limitless Infinity (4K)	${XDG_BIN_HOME:-$HOME/.local/bin}/omarchy-live-wallpaper start mylivewallpapers-com-Minimal-Circle-Gojo-4K.mp4
+󰋑	Jujutsu Kaisen: Yuta & Rika Dark Ocean (2.5K)	${XDG_BIN_HOME:-$HOME/.local/bin}/omarchy-live-wallpaper start yuta-x-rika-dark-ocean-jujutsu-kaisen-moewalls-com.mp4
+󰍜	Jujutsu Kaisen: Kenjaku Prison Realm (FHD)	${XDG_BIN_HOME:-$HOME/.local/bin}/omarchy-live-wallpaper start mylivewallpapers-com-Prison-Realm-Kenjaku-FHD.mp4
+󰒲	Chainsaw Man: Reze Bomb Devil (4K)	${XDG_BIN_HOME:-$HOME/.local/bin}/omarchy-live-wallpaper start reze-bomb-devil-chainsaw-man-1-moewalls-com.mp4
+󰇄	Chainsaw Man: Denji Chainsaw Rage (Ultrawide)	${XDG_BIN_HOME:-$HOME/.local/bin}/omarchy-live-wallpaper start mylivewallpapers-com-Chainsaw-Man-Rage-3440X1440.mp4
+󰥔	Black Clover: Black Asta Demon Form	${XDG_BIN_HOME:-$HOME/.local/bin}/omarchy-live-wallpaper start black-asta-moewalls-com.mp4
+󰓥	Hell's Paradise: Gabimaru Hollow Flame	${XDG_BIN_HOME:-$HOME/.local/bin}/omarchy-live-wallpaper start gabimaru-hollow-flame.1920x1080.mp4
+󰡄	Bleach: Ichigo Hollow Mask	${XDG_BIN_HOME:-$HOME/.local/bin}/omarchy-live-wallpaper start ichigo-hollow-mask.1920x1080.mp4
+󰘔	The Matrix: 4K Digital Rain Raindrop Code	${XDG_BIN_HOME:-$HOME/.local/bin}/omarchy-live-wallpaper start matrix-digital-moewalls-com.mp4
+󰄋	BMW M4: Night Drive Neon Glow	${XDG_BIN_HOME:-$HOME/.local/bin}/omarchy-live-wallpaper start BMW-M4.mp4
+WALLPAPERS
+}
+
+if [[ "${1-}" == "--print" || "${1-}" == "-p" ]]; then
+  output_wallpapers | cut -f1
+  exit 0
+fi
+
+records=$(output_wallpapers)
+selection=$(cut -f1,2 <<<"$records" | omarchy-menu-select "Live Video Wallpapers" -- --width 800 --height 500)
+
+if [[ -n "$selection" ]]; then
+  cmd=$(awk -F '\t' -v sel="$selection" '$1 "\t" $2 == sel || $2 == sel { print $3; exit }' <<<"$records")
+  if [[ -n "$cmd" ]]; then
+    eval "$cmd"
+  fi
+fi

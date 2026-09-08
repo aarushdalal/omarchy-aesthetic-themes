@@ -1,0 +1,194 @@
+#!/bin/bash
+
+LOCAL_VIDEO_DIR="$HOME/.local/share/omarchy/wallpapers/videos"
+EXT_VIDEO_DIR="${OMARCHY_VIDEO_DIR:-$HOME/.local/share/omarchy/wallpapers/videos}"
+ENV_FILE="$HOME/.local/state/omarchy/live-wallpaper.env"
+SERVICE_NAME="omarchy-live-wallpaper.service"
+IPC_SOCK="/tmp/mpvpaper-ipc.sock"
+
+# Recover WAYLAND_DISPLAY if empty
+if [[ -z "$WAYLAND_DISPLAY" ]]; then
+  socket=$(ls -t "${XDG_RUNTIME_DIR:-/run/user/$UID}"/wayland-[0-9]* 2>/dev/null | grep -v '\.lock$' | head -n1)
+  [[ -n $socket ]] && export WAYLAND_DISPLAY=${socket##*/}
+fi
+export WAYLAND_DISPLAY=${WAYLAND_DISPLAY:-wayland-1}
+export XDG_RUNTIME_DIR=${XDG_RUNTIME_DIR:-/run/user/$UID}
+
+is_running() {
+  if pgrep -f "mpvpaper" >/dev/null 2>&1; then
+    return 0
+  fi
+  return 1
+}
+
+send_ipc_loadfile() {
+  local video_path="$1"
+  if [[ -S "$IPC_SOCK" ]] && is_running; then
+    python3 -c "
+import socket, json, sys
+s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+s.settimeout(0.3)
+try:
+    s.connect('$IPC_SOCK')
+    msg = json.dumps({'command': ['loadfile', sys.argv[1]]}) + '\n'
+    s.sendall(msg.encode('utf-8'))
+    s.close()
+    sys.exit(0)
+except Exception:
+    sys.exit(1)
+" "$video_path" 2>/dev/null
+    return $?
+  fi
+  return 1
+}
+
+stop() {
+  systemctl --user stop "$SERVICE_NAME" 2>/dev/null || true
+  pkill -9 -f "mpvpaper" 2>/dev/null || true
+  rm -f "$IPC_SOCK"
+  echo "Live video wallpaper stopped."
+}
+
+start() {
+  local target="$1"
+  if [[ -z "$target" ]]; then
+    target="$(cat "$HOME/.local/state/omarchy/current/theme.name" 2>/dev/null || echo "solo-leveling-monarch")"
+  fi
+
+  # Normalize target (lowercase and hyphens)
+  local slug
+  slug=$(echo "$target" | tr '[:upper:]' '[:lower:]' | tr ' ' '-')
+
+  local video_name=""
+  case "$slug" in
+    solo-leveling-monarch)
+      video_name="sung-jin-woo-beru-solo-leveling-moewalls-com.mp4"
+      ;;
+    solo-leveling-shadow-army)
+      video_name="mylivewallpapers-com-Shadow-Army-Solo-Leveling-4K.mp4"
+      ;;
+    solo-leveling-god-statue)
+      video_name="mylivewallpapers-com-Solo-Leveling-Smile-4K.mp4"
+      ;;
+    sukuna-fuga)
+      video_name="ryomen-sukuna-fuga-jujutsu-kaisen-wallpaperwaifu-com.mp4"
+      ;;
+    sukuna-malevolent-shrine)
+      video_name="ryomen-sukuna-jujutsu-kaisen-moewalls-com.mp4"
+      ;;
+    gojo-infinity)
+      video_name="mylivewallpapers-com-Minimal-Circle-Gojo-4K.mp4"
+      ;;
+    kenjaku-prison-realm)
+      video_name="mylivewallpapers-com-Prison-Realm-Kenjaku-FHD.mp4"
+      ;;
+    yuta-rika-dark-ocean)
+      video_name="yuta-x-rika-dark-ocean-jujutsu-kaisen-moewalls-com.mp4"
+      ;;
+    reze-bomb-devil)
+      video_name="reze-bomb-devil-chainsaw-man-1-moewalls-com.mp4"
+      ;;
+    chainsaw-rage)
+      video_name="mylivewallpapers-com-Chainsaw-Man-Rage-3440X1440.mp4"
+      ;;
+    black-asta)
+      video_name="black-asta-moewalls-com.mp4"
+      ;;
+    gabimaru-hollow-flame)
+      video_name="gabimaru-hollow-flame.1920x1080.mp4"
+      ;;
+    ichigo-hollow)
+      video_name="ichigo-hollow-mask.1920x1080.mp4"
+      ;;
+    matrix-code)
+      video_name="matrix-digital-moewalls-com.mp4"
+      ;;
+    bmw-m4-night)
+      video_name="BMW-M4.mp4"
+      ;;
+    *.mp4|*.mkv)
+      video_name="$target"
+      ;;
+    *)
+      # Direct search in local and external dirs
+      local search_match
+      search_match=$(find "$LOCAL_VIDEO_DIR" "$EXT_VIDEO_DIR" -maxdepth 2 -type f -iname "*$target*" 2>/dev/null | head -n 1)
+      if [[ -n "$search_match" && -f "$search_match" ]]; then
+        video_name="$(basename "$search_match")"
+      else
+        echo "Theme '$slug' does not have a live video wallpaper. Stopping live player."
+        stop
+        return 0
+      fi
+      ;;
+  esac
+
+  # Find full video path (prioritize local persistent SSD storage)
+  local full_video_path=""
+  if [[ -f "$LOCAL_VIDEO_DIR/$video_name" ]]; then
+    full_video_path="$LOCAL_VIDEO_DIR/$video_name"
+  elif [[ -f "$EXT_VIDEO_DIR/$video_name" ]]; then
+    full_video_path="$EXT_VIDEO_DIR/$video_name"
+  else
+    local fallback_match
+    fallback_match=$(find "$LOCAL_VIDEO_DIR" "$EXT_VIDEO_DIR" -maxdepth 2 -type f -iname "*$video_name*" 2>/dev/null | head -n 1)
+    if [[ -n "$fallback_match" && -f "$fallback_match" ]]; then
+      full_video_path="$fallback_match"
+    else
+      echo "Error: Video '$video_name' not found." >&2
+      stop
+      return 1
+    fi
+  fi
+
+  # Record new active video path in state
+  mkdir -p "$HOME/.local/state/omarchy"
+  cat <<ENV_EOF > "$ENV_FILE"
+WAYLAND_DISPLAY=${WAYLAND_DISPLAY}
+XDG_RUNTIME_DIR=${XDG_RUNTIME_DIR}
+VIDEO_PATH="$full_video_path"
+ENV_EOF
+
+  # 1. Fast IPC Hot-Swap (0ms latency, zero flicker)
+  if send_ipc_loadfile "$full_video_path"; then
+    echo "Switched live wallpaper instantly via IPC to: $(basename "$full_video_path")"
+    return 0
+  fi
+
+  # 2. Cold Start via Systemd / Background Daemon if not currently running
+  echo "Cold-starting persistent live wallpaper service for: $(basename "$full_video_path")"
+  systemctl --user daemon-reload
+  systemctl --user restart "$SERVICE_NAME"
+}
+
+case "${1:-status}" in
+  start)
+    start "$2"
+    ;;
+  stop)
+    stop
+    ;;
+  toggle)
+    if is_running; then
+      stop
+    else
+      start "$2"
+    fi
+    ;;
+  status)
+    if is_running; then
+      echo "Live video wallpaper service is ACTIVE (systemd user service: $SERVICE_NAME)"
+      systemctl --user status "$SERVICE_NAME" --no-pager | head -n 12
+    else
+      echo "Live video wallpaper service is INACTIVE."
+    fi
+    ;;
+  list)
+    echo "Available Live Wallpapers in $LOCAL_VIDEO_DIR:"
+    find "$LOCAL_VIDEO_DIR" -maxdepth 2 -type f \( -name "*.mp4" -o -name "*.mkv" \) -exec basename {} \;
+    ;;
+  *)
+    echo "Usage: omarchy-live-wallpaper {start [theme-or-video]|stop|toggle|status|list}"
+    exit 1
+    ;;
+esac
